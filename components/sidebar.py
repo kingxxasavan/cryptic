@@ -25,6 +25,18 @@ def sidebar_ui():
         st.session_state.messages = []
         st.sidebar.success("Started a new chat!")
 
+    # Divider
+    st.sidebar.markdown("---")
+
+    # GitHub Repository link
+    st.sidebar.markdown("### 🧭 Project Links")
+    st.sidebar.markdown(
+        """
+        [![GitHub](https://img.shields.io/badge/GitHub-Repo-181717?logo=github)](https://github.com/GPA95/AI_StudyBuddy)
+        """
+    )
+
+    # Footer note
     st.sidebar.markdown("---")
     st.sidebar.caption("✨ StudyBuddy - AI Powered Study Assistant")
 
