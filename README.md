@@ -71,7 +71,7 @@ StudyBuddy/
 
 ## 🪜 Workflow
 <img width="5496" height="4080" alt="StudyBuddy Workflow" src="https://github.com/user-attachments/assets/ae8f9a61-c84b-4ebf-9081-f139b98cf441" />
-> ©️🖼️ Diagram Credits: [gitdiagram.com | https://github.com/ahmedkhaleel2004/gitdiagram](https://gitdiagram.com/)
+> ©️🖼️ Diagram Credits: https://gitdiagram.com/
 
 ---
 
