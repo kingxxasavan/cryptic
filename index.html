@@ -185,7 +185,7 @@ button,input,textarea,select{font-family:'DM Sans',system-ui,sans-serif}
 
     <div style="flex:1"></div>
 
-    <sc-if value="{{ signedIn }}" hint-placeholder-val="{{ true }}">
+    <sc-if value="{{ canEdit }}" hint-placeholder-val="{{ true }}">
       <button id="tour-edit" sc-camel-on-click="{{ toggleEdit }}" style="{{ editBtnStyle }}">
         <span style="font-size:13px;line-height:1">✎</span>{{ editLabel }}
       </button>
@@ -770,7 +770,7 @@ const TOUR = [
     body: "Search a username to start a direct chat, or pick several people for a group. Threads take text and photos, and show who's online." },
   { id: "tour-search", view: "dir", place: "below", title: "Find a link fast",
     body: "Search matches names, categories and descriptions at once. The chips beside it narrow to one category." },
-  { id: "tour-edit", view: "dir", place: "below", title: "Nothing changes until you say so",
+  { id: "tour-edit", view: "dir", place: "below", adminOnly: true, title: "Nothing changes until you say so",
     body: "Edit mode is the switch for adding, importing and deleting. Off means read-only, so you can't break the list by clicking around." },
   { id: "tour-settings", view: "dir", place: "below", title: "Your name, your model",
     body: "Settings holds what ARIA calls you and which model answers. Ollama and OpenRouter work out of the box; Claude, ChatGPT and DeepSeek run on a key you bring." },
@@ -821,7 +821,8 @@ class Component extends DCLogic {
     keys: { ollama: "http://localhost:11434", openrouter: "", claude: "", chatgpt: "", deepseek: "" },
     query: "", cat: "All", sites: [], modal: null, draft: "", messages: [],
     activeChat: -1, chats: [],
-    authBusy: false, authError: "", authNotice: "", authPending: false
+    authBusy: false, authError: "", authNotice: "", authPending: false,
+    isAdmin: false
   };
 
   componentDidMount() {
@@ -849,8 +850,9 @@ class Component extends DCLogic {
     const full = (user.displayName || (user.email || "").split("@")[0] || "").trim();
     const first = full.split(" ")[0] || "";
     const returning = this.seenBefore(user.uid);
+    const admin = !!(window.CrypticAuth && window.CrypticAuth.isAdmin(user));
     this.setState(st => ({
-      signedIn: true, view: "aria", auth: null, welcome: returning,
+      signedIn: true, isAdmin: admin, view: "aria", auth: null, welcome: returning,
       authBusy: false, authError: "", authNotice: "", authPending: false,
       form: { name: "", email: "", password: "" },
       name: full || st.name, email: user.email || st.email,
@@ -861,7 +863,7 @@ class Component extends DCLogic {
 
   onSignedOut = () => {
     this.setState(st => (st.signedIn
-      ? { signedIn: false, editMode: false, view: "home", tour: -1, rect: null, settings: false }
+      ? { signedIn: false, isAdmin: false, editMode: false, view: "home", tour: -1, rect: null, settings: false }
       : null));
   };
 
@@ -930,8 +932,11 @@ class Component extends DCLogic {
               : "background:var(--bg);border:1px solid var(--border);color:var(--text-2)");
   }
 
+  /** The tour minus the steps that point at controls this account can't see. */
+  tourSteps = () => (this.state.isAdmin ? TOUR : TOUR.filter(t => !t.adminOnly));
+
   measure = () => {
-    const step = TOUR[this.state.tour];
+    const step = this.tourSteps()[this.state.tour];
     if (!step) return;
     const el = document.getElementById(step.id);
     if (!el) return;
@@ -940,8 +945,9 @@ class Component extends DCLogic {
   };
 
   goStep = (i) => {
-    if (i >= TOUR.length) { this.setState({ tour: -1, rect: null, view: "aria" }); return; }
-    this.setState({ tour: i, view: TOUR[i].view, rect: null });
+    const steps = this.tourSteps();
+    if (i >= steps.length) { this.setState({ tour: -1, rect: null, view: "aria" }); return; }
+    this.setState({ tour: i, view: steps[i].view, rect: null });
     setTimeout(this.measure, 80);
   };
 
@@ -1014,7 +1020,7 @@ class Component extends DCLogic {
         ...x,
         initial: x.name[0],
         host: x.url.replace(/^https?:\/\//, ""),
-        remove: () => this.setState(st => ({ sites: st.sites.filter(y => y.name !== x.name) }))
+        remove: () => this.setState(st => (st.isAdmin ? { sites: st.sites.filter(y => y.name !== x.name) } : null))
       }));
     const cats = ["All", ...Array.from(new Set(s.sites.map(x => x.cat)))];
     const m = s.modal ? MODALS[s.modal] : null;
@@ -1025,7 +1031,8 @@ class Component extends DCLogic {
     const pq = s.peopleQuery.trim().toLowerCase();
     const found = pq ? USERS.filter(u => u.handle.toLowerCase().includes(pq) || u.name.toLowerCase().includes(pq)) : [];
     const unreadTotal = Object.values(s.unread).reduce((a, b) => a + b, 0);
-    const step = TOUR[s.tour];
+    const tourSteps = this.tourSteps();
+    const step = tourSteps[s.tour];
     const r = s.rect;
     let cardPos = "";
     if (r && step) {
@@ -1100,11 +1107,11 @@ class Component extends DCLogic {
       tourOn: s.tour >= 0 && !!s.rect,
       tourTitle: step ? step.title : "",
       tourBody: step ? step.body : "",
-      tourStepLabel: step ? "Step " + (s.tour + 1) + " of " + TOUR.length : "",
-      tourCta: s.tour === TOUR.length - 1 ? "Finish" : "Next",
+      tourStepLabel: step ? "Step " + (s.tour + 1) + " of " + tourSteps.length : "",
+      tourCta: s.tour === tourSteps.length - 1 ? "Finish" : "Next",
       tourNext: () => this.goStep(s.tour + 1),
       endTour: () => this.setState({ tour: -1, rect: null, view: "aria" }),
-      tourDots: TOUR.map((_, i) => ({
+      tourDots: tourSteps.map((_, i) => ({
         style: "width:5px;height:5px;border-radius:50%;" + (i === s.tour ? "background:var(--accent)" : "background:var(--border-md)")
       })),
       tourRingStyle: r
@@ -1120,9 +1127,10 @@ class Component extends DCLogic {
         document.documentElement.dataset.theme = theme;
         return { theme };
       }),
-      editMode: s.editMode,
+      canEdit: s.isAdmin,
+      editMode: s.editMode && s.isAdmin,
       editLabel: s.editMode ? "Editing" : "Edit mode",
-      toggleEdit: () => this.setState(st => ({ editMode: !st.editMode })),
+      toggleEdit: () => this.setState(st => (st.isAdmin ? { editMode: !st.editMode } : null)),
       editBtnStyle: "display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9px;font-size:12.5px;font-weight:500;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s;" +
         (s.editMode ? "background:var(--accent-soft);border:1px solid var(--accent);color:var(--accent)"
                     : "background:none;border:1px solid var(--border);color:var(--text-2)"),
@@ -1316,14 +1324,16 @@ class Component extends DCLogic {
 
       rows, noResults: rows.length === 0,
       emptyDirTitle: s.sites.length === 0 ? "Nothing here yet" : "Nothing matches that",
-      emptyDirBody: s.sites.length === 0
-        ? "Turn on Edit mode to add the first site, or import a set of bookmarks."
-        : "Try another word, or clear the category filter.",
+      emptyDirBody: s.sites.length !== 0
+        ? "Try another word, or clear the category filter."
+        : (s.isAdmin
+            ? "Turn on Edit mode to add the first site, or import a set of bookmarks."
+            : "The directory is curated — links appear here once an admin adds them."),
       dirCount: s.sites.length,
       query: s.query, setQuery: (e) => this.setState({ query: e.target.value }),
       cats: cats.map(label => ({ label, pick: () => this.setState({ cat: label }), style: this.chip(s.cat === label) })),
-      openAdd: () => this.setState({ modal: "add" }),
-      openImport: () => this.setState({ modal: "import" }),
+      openAdd: () => this.setState(st => (st.isAdmin ? { modal: "add" } : null)),
+      openImport: () => this.setState(st => (st.isAdmin ? { modal: "import" } : null)),
 
       modal: !!s.modal,
       modalTitle: m ? m.title : "",

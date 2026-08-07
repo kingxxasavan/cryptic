@@ -95,6 +95,41 @@ Every Firebase error code is mapped to a plain-English sentence in
 
 ---
 
+## Who can edit the directory
+
+Signing in gets you the directory, ARIA and messages. **Editing the directory is
+admin-only.** For anyone not on the admin list, the **Edit mode** button never
+appears, and with it go **Add site**, **Import bookmarks** and the per-row delete
+buttons — the directory is read-only.
+
+The roster lives in `src/admin.js`:
+
+```js
+const DEFAULT_ADMINS = "kingfan837@gmail.com";
+```
+
+Override it without touching code by setting `VITE_ADMIN_EMAILS` to a
+comma-separated list (locally in `.env.local`, on Vercel under **Project
+Settings → Environment Variables**; it is read at build time, so redeploy after
+changing it).
+
+The gate is applied in three places, so hiding a button is never the only thing
+standing between a member and an edit:
+
+- the header **Edit mode** button renders only for an admin
+- `toggleEdit`, `openAdd`, `openImport` and the row `remove` handler each refuse
+  to act unless the account is on the list
+- the guided tour drops its "edit mode" step for non-admins, so the walkthrough
+  never points at a control that isn't there
+
+One limit worth being explicit about: this is a **client-side gate**. It decides
+what the browser draws, which is all it can do while the directory lives in
+front-end state. Once the directory is stored in the Realtime Database, the same
+list has to be enforced in Firebase security rules — otherwise a determined user
+could write to the database directly, whatever the UI shows them.
+
+---
+
 ## Project structure
 
 ```
@@ -106,6 +141,7 @@ src/
   firebase.js               Firebase app, Auth and (production-only) Analytics.
   auth.js                   Sign-up / sign-in / verification / reset, plus
                             human-readable error messages.
+  admin.js                  The list of accounts allowed to edit the directory.
 public/
   vendor/dc-runtime.js      Runtime that renders the design template.
   vendor/react*.min.js      React 18 UMD builds the runtime needs.
@@ -149,6 +185,7 @@ each field can be overridden by an environment variable:
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | `messagingSenderId` |
 | `VITE_FIREBASE_APP_ID` | `appId` |
 | `VITE_FIREBASE_MEASUREMENT_ID` | `measurementId` |
+| `VITE_ADMIN_EMAILS` | the directory admin list in `src/admin.js` |
 
 Copy `.env.example` to `.env.local` for local overrides, or set them under
 **Project Settings → Environment Variables** on Vercel (they are read at build
@@ -164,7 +201,8 @@ if it is unavailable.
 
 ## Current scope
 
-Authentication, the session and the tour are real and backed by Firebase.
+Authentication, the session, the admin gate and the tour are real and backed by
+Firebase.
 The directory, ARIA conversations and member messages are still the design's
 front-end behaviour — they hold state for the session but are not yet persisted
 to a backend. The Realtime Database URL is already in the config, so those are

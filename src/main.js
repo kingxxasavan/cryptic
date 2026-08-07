@@ -3,10 +3,13 @@
 // index.html. That block is not a module, so the auth API is handed to it on
 // `window` — this file is the only bridge between the two worlds.
 import * as auth from "./auth.js";
+import { ADMIN_EMAILS, isAdmin } from "./admin.js";
 import "./firebase.js";
 
 window.CrypticAuth = {
   MIN_PASSWORD: auth.MIN_PASSWORD,
+  ADMIN_EMAILS,
+  isAdmin,
   onChange: auth.onChange,
   currentUser: auth.currentUser,
   pendingUser: auth.pendingUser,
