@@ -1180,8 +1180,14 @@ class Component extends DCLogic {
         const pw = s.form.password || "";
         const raw = (s.form.name || email.split("@")[0] || "").trim();
 
+        // Validate before either backend — the local fallback needs the same
+        // checks the Firebase path gets, or blank fields sign straight in.
+        if (!email || !pw) { this.setState({ authError: "Email and password are both required." }); return; }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { this.setState({ authError: "That email address doesn't look right." }); return; }
+        if (isNew && pw.length < 8) { this.setState({ authError: "Password needs at least 8 characters." }); return; }
+        if (isNew && !(s.form.name || "").trim()) { this.setState({ authError: "Please add your name." }); return; }
+
         if (window.CrypticAuth && window.CrypticAuth.isConfigured()) {
-          if (!email || !pw) { this.setState({ authError: "Email and password are both required." }); return; }
           this.setState({ authBusy: true, authError: "" });
           try {
             const user = isNew
