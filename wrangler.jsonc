@@ -1,7 +1,7 @@
 {
   // "name" must match the Worker this repo is connected to in the Cloudflare
   // dashboard. If the build targets the wrong Worker, change it here.
-  "name": "cryptic",
+  "name": "crypticx",
   "main": "src/index.js",
   "compatibility_date": "2026-08-11",
   "assets": {
