@@ -789,8 +789,6 @@ button,input,textarea,select{font-family:'DM Sans',system-ui,sans-serif}
 <script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:820},&quot;watchUsername&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Jellyfin&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Watch library&quot;},&quot;watchPassword&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Jellyfin&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Watch library&quot;}}">
 
 const MODALS = {
-  signin: { title: "Admin sign-in", sub: "Only the verified admin account can manage the directory.", cta: "Sign in",
-    fields: [{ label: "Email", type: "email", ph: "you@example.com" }, { label: "Password", type: "password", ph: "••••••••" }] },
   add: { title: "Add a site", sub: "One link, one note on what it's for.", cta: "Save",
     fields: [{ label: "Name", type: "text", ph: "Excalidraw" }, { label: "URL", type: "text", ph: "https://" }, { label: "Category", type: "text", ph: "Design" }, { label: "What it does", type: "text", ph: "One short line" }] },
   import: { title: "Import bookmarks", sub: "Paste links or just site names, one per line. ARIA sorts and describes them; you can edit anything afterwards.", cta: "Add links", fields: [] }
@@ -1172,7 +1170,7 @@ class Component extends DCLogic {
       authError: s.authError,
       authBusy: s.authBusy,
       authCtaLabel: s.authBusy ? "Working…" : (a ? a.cta : ""),
-      authBackend: this.fbReady ? "Firebase Authentication · stays signed in" : "Local session only — add Firebase keys in Settings",
+      authBackend: this.fbReady ? "Firebase Authentication · stays signed in" : "Sign-in unavailable — add the Firebase keys in Settings",
       authSubmit: async () => {
         if (s.authBusy) return;
         const isNew = s.auth === "signup";
@@ -1187,19 +1185,22 @@ class Component extends DCLogic {
         if (isNew && pw.length < 8) { this.setState({ authError: "Password needs at least 8 characters." }); return; }
         if (isNew && !(s.form.name || "").trim()) { this.setState({ authError: "Please add your name." }); return; }
 
-        if (window.CrypticAuth && window.CrypticAuth.isConfigured()) {
-          this.setState({ authBusy: true, authError: "" });
-          try {
-            const user = isNew
-              ? await window.CrypticAuth.signUp(email, pw, raw)
-              : await window.CrypticAuth.signIn(email, pw);
-            this.applyUser(user, isNew);
-          } catch (err) {
-            this.setState({ authBusy: false, authError: err.message });
-          }
+        // No local fallback: without Firebase nothing can check the password,
+        // so signing in would only be theatre. Fail loudly instead.
+        if (!window.CrypticAuth || !window.CrypticAuth.isConfigured()) {
+          this.setState({ authError: "Sign-in is unavailable — the Firebase keys are missing. Add them in Settings → Firebase, or set them in the Cloudflare environment." });
           return;
         }
-        this.applyUser({ email, name: raw }, isNew);
+
+        this.setState({ authBusy: true, authError: "" });
+        try {
+          const user = isNew
+            ? await window.CrypticAuth.signUp(email, pw, raw)
+            : await window.CrypticAuth.signIn(email, pw);
+          this.applyUser(user, isNew);
+        } catch (err) {
+          this.setState({ authBusy: false, authError: err.message });
+        }
       },
       welcome: s.welcome,
       dismissWelcome: () => this.setState({ welcome: false }),
@@ -1476,7 +1477,7 @@ class Component extends DCLogic {
       modalFields: m ? m.fields : [],
       modalIsImport: s.modal === "import",
       closeModal: () => this.setState({ modal: null }),
-      confirmModal: () => this.setState(st => ({ modal: null, signedIn: st.modal === "signin" ? true : st.signedIn })),
+      confirmModal: () => this.setState({ modal: null }),
       stop: (e) => e.stopPropagation()
     };
   }

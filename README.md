@@ -32,5 +32,5 @@ WATCH_PASSWORD         guest
 
 - The Firebase web API key is not a secret — it identifies the project. Access is controlled by Firebase security rules and the authorised-domain list.
 - Sessions use `browserLocalPersistence`: once someone signs in, they stay signed in on that device until they sign out.
-- Without Firebase keys the app still runs, signing in locally only; the sign-in dialog says so.
+- Without Firebase keys the app still runs, but sign-in is disabled — nothing can verify a password, so the dialog says the keys are missing rather than letting anyone through.
 - Settings → Firebase is a local fallback for testing. Cloudflare environment values always take priority.
