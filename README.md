@@ -31,7 +31,13 @@ WATCH_PASSWORD         guest
 
    Variable names are matched loosely — case, spaces, dashes and underscores are ignored, and the `FIREBASE` prefix is optional — so `FIREBASE_API_KEY`, `firebase api key` and `apiKey` all work.
 
-   If sign-in still says the keys are missing, open **`/__env-check`**. It reports which fields resolved and lists the variable names this Worker can actually see (names only, never values). An empty list means the variables are on a different Worker than the one serving the site — check `name` in `wrangler.jsonc`.
+   If sign-in still says the keys are missing, open **`/__env-check`**. It reports which fields resolved and lists the variable names this Worker can actually see (names only, never values).
+
+   If `variableNamesThisWorkerCanSee` is empty, the Worker is getting nothing at runtime. Three things cause that:
+
+   - **The variables are build variables.** Workers Builds has its own *Build variables and secrets* under Settings → Builds, separate from the runtime ones. Build variables exist only while the build runs and never reach the Worker. The keys must be in **Settings → Variables and Secrets**.
+   - **A deploy wiped them.** `wrangler deploy` deletes dashboard variables that this config file does not declare. `keep_vars: true` in `wrangler.jsonc` prevents that; re-add the variables once after setting it. Storing them as Secrets rather than plain-text variables also survives deploys.
+   - **They are on a different Worker or environment.** Check `name` in `wrangler.jsonc`, and note that preview versions do not see variables scoped to production only.
 5. In the Firebase console, under **Authentication → Settings → Authorised domains**, add your Worker's domain (`*.workers.dev` and any custom domain). Enable the **Email/Password** and **Google** sign-in providers.
 
 ## Local development

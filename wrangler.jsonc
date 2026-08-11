@@ -4,6 +4,11 @@
   "name": "crypticx",
   "main": "src/index.js",
   "compatibility_date": "2026-08-11",
+  // Without this, every deploy deletes the plain-text variables set in the
+  // dashboard, because wrangler treats this file as the whole truth about
+  // bindings and no vars are declared here. The Firebase keys are configured
+  // in the dashboard on purpose, so they must survive deploys.
+  "keep_vars": true,
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
