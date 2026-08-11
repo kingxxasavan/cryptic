@@ -15,30 +15,23 @@
 
 1. Connect this repo to a Worker in the Cloudflare dashboard (**Workers & Pages → your Worker → Settings → Builds**). No build command is needed; the deploy command is `npx wrangler deploy` on the production branch and `npx wrangler versions upload` on other branches.
 2. Set `name` in `wrangler.jsonc` to your Worker's actual name, or the build will target the wrong Worker.
-3. In **Worker → Settings → Variables and Secrets**, add:
-
-```
-FIREBASE_API_KEY       AIza…
-FIREBASE_AUTH_DOMAIN   your-project.firebaseapp.com
-FIREBASE_PROJECT_ID    your-project
-FIREBASE_APP_ID        1:123…:web:abc…
-WATCH_URL              https://watch.arkia.buzz/web/
-WATCH_USERNAME         guest
-WATCH_PASSWORD         guest
-```
-
-4. Redeploy. `src/index.js` serves those values at `/env.js`, so the keys live in Cloudflare, not in the source. Check by loading `/env.js` in a browser — it should show your real values, not empty strings.
-
-   Variable names are matched loosely — case, spaces, dashes and underscores are ignored, and the `FIREBASE` prefix is optional — so `FIREBASE_API_KEY`, `firebase api key` and `apiKey` all work.
-
-   If sign-in still says the keys are missing, open **`/__env-check`**. It reports which fields resolved and lists the variable names this Worker can actually see (names only, never values).
-
-   If `variableNamesThisWorkerCanSee` is empty, the Worker is getting nothing at runtime. Three things cause that:
-
-   - **The variables are build variables.** Workers Builds has its own *Build variables and secrets* under Settings → Builds, separate from the runtime ones. Build variables exist only while the build runs and never reach the Worker. The keys must be in **Settings → Variables and Secrets**.
-   - **A deploy wiped them.** `wrangler deploy` deletes dashboard variables that this config file does not declare. `keep_vars: true` in `wrangler.jsonc` prevents that; re-add the variables once after setting it. Storing them as Secrets rather than plain-text variables also survives deploys.
-   - **They are on a different Worker or environment.** Check `name` in `wrangler.jsonc`, and note that preview versions do not see variables scoped to production only.
+3. Fill in the four Firebase values in the `vars` block of `wrangler.jsonc`. Copy them from the Firebase console under **Project settings → General → Your apps → SDK setup and configuration**. Commit and push; the build picks them up.
+4. For real credentials — the watch username and password — use **Worker → Settings → Variables and Secrets** instead, so they stay out of the repo. `keep_vars: true` stops deploys from clearing them.
 5. In the Firebase console, under **Authentication → Settings → Authorised domains**, add your Worker's domain (`*.workers.dev` and any custom domain). Enable the **Email/Password** and **Google** sign-in providers.
+
+### Why the Firebase keys are committed
+
+The Firebase web config is not a secret. Every visitor's browser receives it — that is how the client SDK works, and it was equally true when these values came from environment variables. Access is controlled by the authorised-domain list and Firebase security rules, not by hiding the strings.
+
+Keeping them in `wrangler.jsonc` means preview builds and production behave identically. Environment variables do not: `wrangler versions upload`, which runs for non-production branches, builds a version's bindings from this config file alone, so dashboard variables never reach a preview URL.
+
+### If sign-in says the keys are missing
+
+Open **`/__env-check`**. It reports which fields resolved and lists the variable names the Worker can see (names only, never values).
+
+- **Names listed but a field is `false`** — that value is blank in `wrangler.jsonc`, or the name is one the Worker does not recognise. Names are matched loosely: case, spaces, dashes and underscores are ignored and the `FIREBASE` prefix is optional, so `FIREBASE_API_KEY`, `firebase api key` and `apiKey` are the same key.
+- **The list is empty** — the Worker is getting nothing at runtime. Either the `vars` block is missing from `wrangler.jsonc`, or you are relying on dashboard variables that this deploy does not include. Note that Workers Builds also has its own *Build variables* under Settings → Builds; those exist only while the build runs and never reach the Worker.
+- **`signInWillWork: true` but sign-in still fails** — the config is fine and the problem is Firebase-side. Check that the domain you are loading is in the authorised-domain list, and that the Email/Password provider is enabled.
 
 ## Local development
 
