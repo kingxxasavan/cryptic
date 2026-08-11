@@ -1,9 +1,13 @@
-// Cloudflare Pages Function: serves /env.js from the project's environment
-// variables so the keys live in Cloudflare rather than in the source tree.
-// Any variable left unset comes through as an empty string, which the app
-// treats the same as "not configured".
-export function onRequest(context) {
-  const env = context.env || {};
+// Cryptic Hub Worker.
+//
+// Everything in public/ is served as a static asset. The one dynamic route is
+// /env.js, which is generated from the Worker's environment variables so the
+// Firebase keys live in Cloudflare rather than in the source tree.
+//
+// public/env.js exists as a blank local-dev fallback; run_worker_first in
+// wrangler.jsonc makes this handler win for that path in production.
+
+function envScript(env) {
   const pick = (key) => String(env[key] ?? "");
 
   const config = {
@@ -24,3 +28,10 @@ export function onRequest(context) {
     }
   });
 }
+
+export default {
+  async fetch(request, env) {
+    if (new URL(request.url).pathname === "/env.js") return envScript(env);
+    return env.ASSETS.fetch(request);
+  }
+};

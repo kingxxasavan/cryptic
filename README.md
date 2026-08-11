@@ -1,19 +1,21 @@
-# Cryptic Hub — deploying to Cloudflare Pages
+# Cryptic Hub — deploying to Cloudflare Workers
 
 ## Files
 
 | File | What it does |
 | --- | --- |
-| `index.html` | The app |
-| `support.js` | Runtime the app loads |
-| `firebase-auth.js` | Firebase Authentication (email/password + Google), session persists across visits |
-| `env.js` | Local fallback config — replaced at runtime on Cloudflare |
-| `functions/env.js.js` | Pages Function that serves `/env.js` from environment variables |
+| `public/index.html` | The app |
+| `public/support.js` | Runtime the app loads |
+| `public/firebase-auth.js` | Firebase Authentication (email/password + Google), session persists across visits |
+| `public/env.js` | Blank local-dev fallback — the Worker serves `/env.js` instead in production |
+| `src/index.js` | The Worker: serves `/env.js` from environment variables, everything else from `public/` |
+| `wrangler.jsonc` | Worker name, entry point, and static-asset config |
 
 ## Deploy
 
-1. Upload this folder to Cloudflare Pages (direct upload, or push to a repo and connect it). No build command, output directory `/`.
-2. In **Pages → Settings → Environment variables**, add:
+1. Connect this repo to a Worker in the Cloudflare dashboard (**Workers & Pages → your Worker → Settings → Builds**). No build command is needed; the deploy command is `npx wrangler deploy` on the production branch and `npx wrangler versions upload` on other branches.
+2. Set `name` in `wrangler.jsonc` to your Worker's actual name, or the build will target the wrong Worker.
+3. In **Worker → Settings → Variables and Secrets**, add:
 
 ```
 FIREBASE_API_KEY       AIza…
@@ -25,8 +27,16 @@ WATCH_USERNAME         guest
 WATCH_PASSWORD         guest
 ```
 
-3. Redeploy. `functions/env.js.js` serves those values at `/env.js`, so the keys live in Cloudflare, not in the source.
-4. In the Firebase console, under **Authentication → Settings → Authorised domains**, add your Pages domain (`*.pages.dev` and any custom domain). Enable the **Email/Password** and **Google** sign-in providers.
+4. Redeploy. `src/index.js` serves those values at `/env.js`, so the keys live in Cloudflare, not in the source. Check by loading `/env.js` in a browser — it should show your real values, not empty strings.
+5. In the Firebase console, under **Authentication → Settings → Authorised domains**, add your Worker's domain (`*.workers.dev` and any custom domain). Enable the **Email/Password** and **Google** sign-in providers.
+
+## Local development
+
+```
+npx wrangler dev
+```
+
+Serves the app on `localhost:8787` with `/env.js` built from your local vars. Add keys with `--var FIREBASE_API_KEY:…`, or put them in a `.dev.vars` file.
 
 ## Notes
 
