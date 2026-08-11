@@ -28,6 +28,10 @@ WATCH_PASSWORD         guest
 ```
 
 4. Redeploy. `src/index.js` serves those values at `/env.js`, so the keys live in Cloudflare, not in the source. Check by loading `/env.js` in a browser — it should show your real values, not empty strings.
+
+   Variable names are matched loosely — case, spaces, dashes and underscores are ignored, and the `FIREBASE` prefix is optional — so `FIREBASE_API_KEY`, `firebase api key` and `apiKey` all work.
+
+   If sign-in still says the keys are missing, open **`/__env-check`**. It reports which fields resolved and lists the variable names this Worker can actually see (names only, never values). An empty list means the variables are on a different Worker than the one serving the site — check `name` in `wrangler.jsonc`.
 5. In the Firebase console, under **Authentication → Settings → Authorised domains**, add your Worker's domain (`*.workers.dev` and any custom domain). Enable the **Email/Password** and **Google** sign-in providers.
 
 ## Local development
