@@ -21,10 +21,10 @@
   // Variables and Secrets. keep_vars below stops deploys from clearing them.
   // ---------------------------------------------------------------------
   "vars": {
-    "FIREBASE_API_KEY": "",
-    "FIREBASE_AUTH_DOMAIN": "",
-    "FIREBASE_PROJECT_ID": "",
-    "FIREBASE_APP_ID": "",
+    "FIREBASE_API_KEY": "AIzaSyC3e8T0nsoyey0EA9ozQbt9o5THI4pGzng",
+    "FIREBASE_AUTH_DOMAIN": "arikia.firebaseapp.com",
+    "FIREBASE_PROJECT_ID": "arikia",
+    "FIREBASE_APP_ID": "1:472996212961:web:d6a53311c8d281f97507a0",
     "WATCH_URL": "https://watch.arkia.buzz/web/"
   },
 
